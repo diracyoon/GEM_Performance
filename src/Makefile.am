@@ -38,6 +38,7 @@ testexternals.C:
 	@echo '}' >> $@
 
 GEM_Performance_Dict.C: \
+  Const_Def.h \
   Rate_Capability.h \
   GEM_Performance_LinkDef.h
 	rootcling -f $@ -I`root-config --incdir` -c $^

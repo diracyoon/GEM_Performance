@@ -285,7 +285,7 @@ void Rate_Capability::Read_Attenuation()
   
 //////////
 
-void Rate_Capability::Draw_Multi_Layer_Gain(const Bool_t& chk_recal)
+void Rate_Capability::Draw_Multi_Layer_Gain(const Bool_t& chk_renormal)
 {
   TCanvas canvas("can", "can", 800, 500);
 
@@ -295,9 +295,13 @@ void Rate_Capability::Draw_Multi_Layer_Gain(const Bool_t& chk_recal)
 
   TGraphErrors gr_normal[4];
 
+  map<Int_t, TGraphErrors>& map = map_gr_flux_gain;
+  if(chk_renormal==kFALSE) map = map_gr_flux_gain;
+  else map = map_gr_flux_gain_renormal;
+  
   Double_t average = 1, error = 0;
   Int_t count = 0;
-  for(auto it = map_gr_flux_gain.rbegin(); it!=map_gr_flux_gain.rend(); it++)
+  for(auto it = map.rbegin(); it!=map.rend(); it++)
     {
       TGraphErrors* gr = &it->second;
 
@@ -335,7 +339,7 @@ void Rate_Capability::Draw_Multi_Layer_Gain(const Bool_t& chk_recal)
   
   multi_gr.Draw("AP");
   multi_gr.SetTitle("Flux_Normalized_Gain_"+hv_current);
-  multi_gr.GetXaxis()->SetLimits(1e2, 6e6);
+  multi_gr.GetXaxis()->SetLimits(1e1, 1e7);
   multi_gr.GetXaxis()->SetTitle("Flux [Hz/mm^{2}]");
   multi_gr.GetYaxis()->SetRangeUser(0, 1.7);
   multi_gr.GetYaxis()->SetTitle("Normalized Gain");
@@ -421,20 +425,25 @@ void Rate_Capability::Read_Single_Layer_Data(const Int_t& n_layer)
 
 //////////
 
-void Rate_Capability::Recalculate_Attenuation_Gain()
+void Rate_Capability::Renormalize_Attenuation_Gain()
 {
+  Int_t n_layer_low = -1;
+  Int_t n_layer_up = -1;
+  
   TGraphErrors* gr_low = NULL;
   TGraphErrors* gr_up = NULL;
   for(auto it = map_gr_flux_gain.rbegin(); it!=map_gr_flux_gain.rend(); it++)
     {
+      n_layer_low = n_layer_up;
       gr_low = gr_up;
+	
+      n_layer_up = it->first;
       gr_up = &it->second;
 
-      Int_t n_layer = it->first;
-      
       if(gr_low==NULL)
 	{
-	  map_gr_flux_gain_recal[n_layer] = *gr_up;
+	  map_gr_flux_gain_renormal[n_layer_up] = *gr_up;
+	  	  
 	  continue;
 	}
       
@@ -444,35 +453,35 @@ void Rate_Capability::Recalculate_Attenuation_Gain()
       Double_t* gain_up = gr_up->GetY();
       Double_t* gain_error_up = gr_up->GetEY();
       
-      Double_t gain_low = gr_low->Eval(flux[0]);
-      Double_t attenuation_recal = gain_up[0]/gain_low;
+      Double_t gain_low = map_gr_flux_gain_renormal[n_layer_low].Eval(flux[0]);
+      Double_t attenuation_renormal = gain_up[0]/gain_low;
       
-      TGraphErrors gr_flux_gain_recal;
-      gr_flux_gain_recal.SetName("Gr_Flux_Gain_Recaled_Attenuation_" + TString(to_string(n_layer)) + "Layer");
-      gr_flux_gain_recal.SetTitle("Flux vs Gain (Recaled, " + TString(to_string(n_layer)) + "Layer)");
+      TGraphErrors gr_flux_gain_renormal;
+      gr_flux_gain_renormal.SetName("Gr_Flux_Gain_Renormalized_Attenuation_" + TString(to_string(n_layer_up)) + "Layer");
+      gr_flux_gain_renormal.SetTitle("Flux vs Gain (Renormalized, " + TString(to_string(n_layer_up)) + "Layer)");
       
       Int_t n_point = gr_up->GetN();
       for(Int_t i=0; i<n_point; i++)
 	{
-	  Double_t flux_recal = flux[i]*attenuation_recal;
-	  Double_t flux_error_recal = flux_error[i]*attenuation_recal;
+	  Double_t flux_renormal = flux[i];//*attenuation_renormal;
+	  Double_t flux_error_renormal = flux_error[i];//*attenuation_renormal;
 	  
-	  Double_t gain_recal = gain_up[i]/attenuation_recal;
-	  Double_t gain_error_recal = gain_error_up[i]/attenuation_recal;
+	  Double_t gain_renormal = gain_up[i]/attenuation_renormal;
+	  Double_t gain_error_renormal = gain_error_up[i]/attenuation_renormal;
 	  
-	  gr_flux_gain_recal.SetPoint(i, flux_recal, gain_recal);
-	  gr_flux_gain_recal.SetPointError(i, flux_error_recal, gain_error_recal);
+	  gr_flux_gain_renormal.SetPoint(i, flux_renormal, gain_renormal);
+	  gr_flux_gain_renormal.SetPointError(i, flux_error_renormal, gain_error_renormal);
 	}
       
-      map_gr_flux_gain_recal[n_layer] = gr_flux_gain_recal;
+      map_gr_flux_gain_renormal[n_layer_up] = gr_flux_gain_renormal;
       
       fout->cd();
-      gr_flux_gain_recal.Write();
+      gr_flux_gain_renormal.Write();
     }
   
   
   return;
-}//void Rate_Capability::Recalculate_Attenuation_Gain()
+}//void Rate_Capability::Renormalize_Attenuation_Gain()
 
 //////////
 

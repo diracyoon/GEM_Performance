@@ -1,6 +1,6 @@
 void Run_Rate_Capability(const TString path)
 {
-  Rate_Capability* rate_capability = new Rate_Capability("669uA", path);
+  Rate_Capability* rate_capability = new Rate_Capability("664uA", path);
 
   rate_capability->Read_Single_Layer_Data(10);
   rate_capability->Read_Single_Layer_Data(4);
@@ -22,8 +22,8 @@ void Run_Rate_Capability(const TString path)
   rate_capability->Calculate_Single_Layer_Gain(1);
   rate_capability->Calculate_Single_Layer_Gain(0);
 
-  //rate_capability->Recalculate_Attenuation_Gain();
-  rate_capability->Draw_Multi_Layer_Gain(kFALSE);
+  rate_capability->Renormalize_Attenuation_Gain();
+  rate_capability->Draw_Multi_Layer_Gain(kTRUE);
   
   delete rate_capability;
   

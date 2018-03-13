@@ -47,7 +47,7 @@ void Read_RO::Read_RO_Count()
       gr_ro.SetPointError(n_point, n_point, ro_error);
     }
 
-  gr_ro.Fit("pol0", "F");
+  gr_ro.Fit("pol0", "FQ");
   TF1* func_fit = (TF1*)(gr_ro.GetListOfFunctions()->FindObject("pol0"));
   ro_mean = func_fit->GetParameter(0);
   ro_mean_error = func_fit->GetParError(0);

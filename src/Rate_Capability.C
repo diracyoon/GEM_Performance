@@ -10,7 +10,8 @@ Rate_Capability::Rate_Capability(const TString& a_hv_current, const TString& a_p
 
   fout = new TFile("Rate_Capability_" + hv_current + ".root", "RECREATE");
 
-  Read_Attenuation();
+  Read_Attenuation_Data();
+  Calculate_Attenuation_Factor();
 }//Rate_Capability::Rate_Capability()
 
 //////////
@@ -22,22 +23,136 @@ Rate_Capability::~Rate_Capability()
 
 //////////
 
+void Rate_Capability::Calculate_Attenuation_Factor()
+{
+  gr_rate_current.SetName("Gr_Rate_Current");
+  gr_rate_current.SetTitle("Rate vs Current");
+  gr_rate_current.GetXaxis()->SetTitle("Rate");
+  gr_rate_current.GetYaxis()->SetTitle("1e9*Current");
+
+  gr_n_layer_rate.SetName("Gr_N_Layer_Rate");
+  gr_n_layer_rate.SetTitle("#Layer vs. Rate");
+  gr_n_layer_rate.GetXaxis()->SetTitle("#Layer");
+  gr_n_layer_rate.GetYaxis()->SetTitle("Rate");
+
+  gr_n_layer_current.SetName("Gr_N_Layer_Current");
+  gr_n_layer_current.SetTitle("#Layer vs. Current");
+  gr_n_layer_current.GetXaxis()->SetTitle("#Layer");
+  gr_n_layer_current.GetYaxis()->SetTitle("1e9*Current");
+
+  gr_n_layer_attenuation_factor_rate.SetName("Gr_N_Layer_Attenuation_Factor_Rate");
+  gr_n_layer_attenuation_factor_rate.SetTitle("#Layer vs. Attenuation_Factor (Rate)");
+  gr_n_layer_attenuation_factor_rate.GetXaxis()->SetTitle("#Layer");
+  gr_n_layer_attenuation_factor_rate.GetYaxis()->SetTitle("Attenuation_Factor (Count)");
+
+  gr_n_layer_attenuation_factor_current.SetName("Gr_N_Layer_Attenuation_Factor_Current");
+  gr_n_layer_attenuation_factor_current.SetTitle("#Layer vs. Attenuation_Factor (Current)");
+  gr_n_layer_attenuation_factor_current.GetXaxis()->SetTitle("#Layer");
+  gr_n_layer_attenuation_factor_current.GetYaxis()->SetTitle("Attenuation_Factor (Current)");
+
+  Int_t daq_time = map_attenuation[4].daq_time;
+  
+  Double_t count_4 = map_attenuation[4].count_on - map_attenuation[4].count_off;
+  Double_t count_error_4 = TMath::Sqrt(map_attenuation[4].count_on + map_attenuation[4].count_off);
+
+  Double_t rate_4 = count_4/daq_time;
+  Double_t rate_error_4 = count_error_4/daq_time;
+  
+  Double_t current_4 = map_attenuation[4].current_off - map_attenuation[4].current_on;
+  Double_t current_error_4 = TMath::Sqrt(TMath::Power(map_attenuation[4].current_error_on, 2.0)+TMath::Power(map_attenuation[4].current_error_off, 2.0));
+
+  for(auto it=map_attenuation.begin(); it!=map_attenuation.end(); it++)
+    {
+      Int_t n_layer = it->first;
+
+      Int_t daq_time = map_attenuation[n_layer].daq_time;
+      
+      Double_t count = map_attenuation[n_layer].count_on - map_attenuation[n_layer].count_off;
+      Double_t count_error = TMath::Sqrt(map_attenuation[n_layer].count_on + map_attenuation[n_layer].count_off);
+
+      Double_t rate = count/daq_time;
+      Double_t rate_error = count_error/daq_time;
+      
+      Double_t current = map_attenuation[n_layer].current_off - map_attenuation[n_layer].current_on;
+      Double_t current_error = TMath::Sqrt(TMath::Power(map_attenuation[n_layer].current_error_on, 2.0)+TMath::Power(map_attenuation[n_layer].current_error_off, 2.0));
+           
+      Int_t n_point = gr_rate_current.GetN();
+
+      gr_rate_current.SetPoint(n_point, rate, 1e9*current);
+      gr_rate_current.SetPointError(n_point, rate_error, 1e9*current_error);
+
+      gr_n_layer_rate.SetPoint(n_point, n_layer, rate);
+      gr_n_layer_rate.SetPointError(n_point, 0, rate_error);
+
+      gr_n_layer_current.SetPoint(n_point, n_layer, 1e9*current);
+      gr_n_layer_current.SetPointError(n_point, 0, 1e9*current_error);
+
+      Double_t attenuation_factor_rate = rate/rate_4;
+      Double_t attenuation_factor_rate_error = TMath::Sqrt(TMath::Power(rate_error/rate_4, 2) + TMath::Power(rate*rate_error_4/TMath::Power(rate_4, 2.0), 2.0));
+
+      gr_n_layer_attenuation_factor_rate.SetPoint(n_point, n_layer, attenuation_factor_rate);
+      gr_n_layer_attenuation_factor_rate.SetPointError(n_point, 0, attenuation_factor_rate_error);
+
+      Double_t attenuation_factor_current = current/current_4;
+      Double_t attenuation_factor_current_error = TMath::Sqrt(TMath::Power(current_error/current_4, 2) + TMath::Power(current*current_error_4/current_4/current_4, 2.0));
+
+      gr_n_layer_attenuation_factor_current.SetPoint(n_point, n_layer, attenuation_factor_current);
+      gr_n_layer_attenuation_factor_current.SetPointError(n_point, 0, attenuation_factor_current_error);
+    }
+    
+  //Write
+  fout->cd();
+
+  gr_rate_current.Write();
+  gr_n_layer_rate.Write();
+  gr_n_layer_current.Write();
+  gr_n_layer_attenuation_factor_rate.Write();
+  gr_n_layer_attenuation_factor_current.Write();
+
+  //fit
+  gr_rate_current.Fit("pol1", "FS0", "", 0, 8e6);
+  gr_n_layer_rate.Fit("expo", "S", "", 2, 12);
+
+  fit_n_layer_rate = (TF1*)(gr_n_layer_rate.GetListOfFunctions()->FindObject("expo"));
+
+  //print
+  TCanvas canvas("canvas", "canvas", 1200, 800);
+  canvas.Divide(1, 2);
+  canvas.Draw();
+
+  canvas.cd(1);
+  gr_rate_current.Draw("AP*");
+
+  canvas.cd(2);
+  gr_n_layer_rate.Draw("AP*");
+
+  canvas.GetPad(2)->SetLogy();
+
+  canvas.Print("Attenuation.png", "png");
+  
+  return;
+}//void Rate_Capability::Calculate_Attenuation_Factor()
+
+//////////
+
 void Rate_Capability::Calculate_Expected_Rate(const Int_t& n_layer)
 {
   TGraphErrors gr_xray_current_expected_rate;
   gr_xray_current_expected_rate.SetName("Gr_Xray_Current_Expected_Rate_" + TString(to_string(n_layer)) + "Layer");
   gr_xray_current_expected_rate.SetTitle("Xray current vs Expected Rate (" + TString(to_string(n_layer)) + "Layer)");
 
-  Int_t n_point = map_xray_current[n_layer].size();
+  Int_t n_point = map_data[n_layer].points.size();
   for(Int_t i=0; i<n_point; i++)
     {
-      Int_t xray_current = map_xray_current[n_layer].at(i);
+      Data_Point point = map_data[n_layer].points[i];
+      
+      Int_t xray_current = point.xray_current;
 
       Double_t expected_rate;
       Double_t expected_rate_error;
-
+      
       //for layer 10, and layer 4 and xray_current < 40 use count for attenuation 
-      if(n_layer==10 || (n_layer==4 && xray_current<30)) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "COUNT_MEASUREMENT");
+      if(n_layer==10 || (n_layer==4 && xray_current<30)) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "SELF");
       else if(n_layer==4 && 30<xray_current) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "FIT_SELF");
       else if(n_layer==1) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "COUNT_MEASUREMENT");
       else if(n_layer==0) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "CURRENT_MEASUREMENT");
@@ -59,30 +174,25 @@ void Rate_Capability::Calculate_Expected_Rate(const Int_t& n_layer)
 
 void Rate_Capability::Calculate_Measured_Rate(const Int_t& n_layer)
 {
-  //reference rate
   TGraphErrors gr_xray_current_measured_rate;
   gr_xray_current_measured_rate.SetName("Gr_Xray_Current_Measured_Rate_" + TString(to_string(n_layer)) + "Layer");
   gr_xray_current_measured_rate.SetTitle("Xray current vs Measured Rate (" + TString(to_string(n_layer)) + "Layer)");
 
-
-  Int_t n_point = map_xray_current[n_layer].size();
+  Double_t daq_time = map_data[n_layer].daq_time;
+  
+  Int_t n_point = map_data[n_layer].points.size();
   for(Int_t i=0; i<n_point; i++)
     {
-      Int_t xray_current = map_xray_current[n_layer].at(i);
+      Data_Point point = map_data[n_layer].points[i];
+      
+      Int_t xray_current = point.xray_current;
 
       //calculate measured rate
-      Double_t measured_count = map_count_on[n_layer].at(i) - map_count_off[n_layer].at(i);
-      Double_t measured_count_error = TMath::Sqrt(map_count_on[n_layer].at(i) + map_count_off[n_layer].at(i));
+      Double_t measured_count = point.count_on - point.count_off;
+      Double_t measured_count_error = TMath::Sqrt(point.count_on + point.count_off);
 
-      Double_t measured_rate = measured_count/60;
-      Double_t measured_rate_error = measured_count_error/60.;
-
-      //save reference rate for easy handling
-      if(n_layer==10)
-	{
-	  map_reference_rate[xray_current] = measured_rate;
-	  map_reference_rate_error[xray_current] = measured_rate_error;
-	}
+      Double_t measured_rate = measured_count/daq_time;
+      Double_t measured_rate_error = measured_count_error/daq_time;
 
       gr_xray_current_measured_rate.SetPoint(i, xray_current, measured_rate);
       gr_xray_current_measured_rate.SetPointError(i, 0, measured_rate_error);
@@ -104,11 +214,13 @@ void Rate_Capability::Calculate_Single_Layer_Gain(const Int_t& n_layer)
   TGraphErrors gr_flux_gain;
   gr_flux_gain.SetName("Gr_Flux_Gain_" + TString(to_string(n_layer)) + "Layer");
   gr_flux_gain.SetTitle("Flux vs Gain (" + TString(to_string(n_layer)) + "Layer)");
-  
-  Int_t n_point = map_xray_current[n_layer].size();
+
+  Int_t n_point = map_data[n_layer].points.size();
   for(Int_t i=0; i<n_point; i++)
     {
-      Int_t xray_current = map_xray_current[n_layer].at(i);
+      Data_Point point = map_data[n_layer].points[i];
+      
+      Int_t xray_current = point.xray_current;
       
       Double_t current = map_current_on[n_layer].at(i) - map_current_off[n_layer].at(i);
       Double_t current_error = TMath::Sqrt(TMath::Power(map_current_error_on[n_layer].at(i), 2.0) + TMath::Power(map_current_error_off[n_layer].at(i), 2.0));
@@ -140,7 +252,7 @@ void Rate_Capability::Calculate_Single_Layer_Gain(const Int_t& n_layer)
 
 //////////
 
-void Rate_Capability::Read_Attenuation()
+void Rate_Capability::Read_Attenuation_Data()
 {
   //Read data file
   ifstream fin;
@@ -148,143 +260,48 @@ void Rate_Capability::Read_Attenuation()
 
   if(fin.is_open()==kFALSE)
     {
-      cout << "Can not find Attenuation.txt. Check it first!!" << endl;
+      cout << "Can not find Attenuation.csv. Check it first!!" << endl;
       exit(1);
     }
 
-  map<Int_t, Int_t> map_count_off;
-  map<Int_t, Int_t> map_count_on;
-  map<Int_t, Double_t> map_current_off;
-  map<Int_t, Double_t> map_current_error_off;
-  map<Int_t, Double_t> map_current_on;
-  map<Int_t, Double_t> map_current_error_on;
+  TString fin_name_off = path+"/Data_Attenuation/Background.txt";
 
-  string temp;
-  getline(fin, temp);
+  Read_RO read_ro_off(fin_name_off); 
+
+  Double_t current_off = read_ro_off.Get_Mean();
+  Double_t current_error_off = read_ro_off.Get_Mean_Error();
+  
+  string buf;
+  getline(fin, buf);
   while(!fin.eof())
     {
-      getline(fin, temp);
-      if(temp.compare("")==0) break;
+      getline(fin, buf);
+      if(buf.compare("")==0) break;
 
-      Int_t n_layer;
-      Int_t count_off;
-      Int_t count_on;
-      Double_t current_off;
-      Double_t current_error_off;
-      Double_t current_on;
-      Double_t current_error_on;
+      Data_Attenuation data;
+      
+      sscanf(buf.c_str(), "%d,%d,%d,%d", &data.n_layer, &data.daq_time, &data.count_off, &data.count_on);
 
-      sscanf(temp.c_str(), "%d,%d,%d,%lf,%lf,%lf,%lf", &n_layer, &count_off, &count_on, &current_off, &current_error_off, &current_on, &current_error_on);
+      data.current_off = current_off;
+      data.current_error_off = current_error_off;
+      
+      TString fin_name_on = path + "/Data_Attenuation/";
+      fin_name_on += data.n_layer;
+      fin_name_on += "Layers.txt";
 
-      map_count_off[n_layer] = count_off;
-      map_count_on[n_layer] = count_on;
-      map_current_off[n_layer] = current_off;
-      map_current_error_off[n_layer] = current_error_off;
-      map_current_on[n_layer] = current_on;
-      map_current_error_on[n_layer] = current_error_on;
+      Read_RO read_ro_on(fin_name_on);
+
+      data.current_on = read_ro_on.Get_Mean();
+      data.current_error_on = read_ro_on.Get_Mean_Error();
+      
+      map_attenuation[data.n_layer] = data;
     }
-
-  //let's calculate
-  gr_count_current.SetName("Gr_Count_Current");
-  gr_count_current.SetTitle("Count vs Current");
-  gr_count_current.GetXaxis()->SetTitle("Count");
-  gr_count_current.GetYaxis()->SetTitle("1e9*Current");
-
-  gr_n_layer_count.SetName("Gr_N_Layer_Count");
-  gr_n_layer_count.SetTitle("#Layer vs. Count");
-  gr_n_layer_count.GetXaxis()->SetTitle("#Layer");
-  gr_n_layer_count.GetYaxis()->SetTitle("Count");
-
-  gr_n_layer_current.SetName("Gr_N_Layer_Current");
-  gr_n_layer_current.SetTitle("#Layer vs. Current");
-  gr_n_layer_current.GetXaxis()->SetTitle("#Layer");
-  gr_n_layer_current.GetYaxis()->SetTitle("1e9*Current");
-
-  gr_n_layer_attenuation_factor_count.SetName("Gr_N_Layer_Attenuation_Factor_Count");
-  gr_n_layer_attenuation_factor_count.SetTitle("#Layer vs. Attenuation_Factor (Count)");
-  gr_n_layer_attenuation_factor_count.GetXaxis()->SetTitle("#Layer");
-  gr_n_layer_attenuation_factor_count.GetYaxis()->SetTitle("Attenuation_Factor (Count)");
-
-  gr_n_layer_attenuation_factor_current.SetName("Gr_N_Layer_Attenuation_Factor_Current");
-  gr_n_layer_attenuation_factor_current.SetTitle("#Layer vs. Attenuation_Factor (Current)");
-  gr_n_layer_attenuation_factor_current.GetXaxis()->SetTitle("#Layer");
-  gr_n_layer_attenuation_factor_current.GetYaxis()->SetTitle("Attenuation_Factor (Current)");
-
-  Double_t count_10 = map_count_on[10] - map_count_off[10];
-  Double_t count_error_10 = TMath::Sqrt(map_count_on[10] + map_count_off[10]);
-
-  Double_t current_10 = map_current_on[10] - map_current_off[10]; ;
-  Double_t current_error_10 = TMath::Sqrt(TMath::Power(map_current_error_on[10], 2.0)+TMath::Power(map_current_error_off[10], 2.0));
-
-  for(auto it=map_count_off.begin(); it!=map_count_off.end(); it++)
-    {
-      Int_t n_layer = it->first;
-
-      Double_t count = map_count_on[n_layer] - map_count_off[n_layer];
-      Double_t count_error = TMath::Sqrt(map_count_on[n_layer] + map_count_off[n_layer]);
-
-      Double_t current = map_current_on[n_layer] - map_current_off[n_layer];
-      Double_t current_error = TMath::Sqrt(TMath::Power(map_current_error_on[n_layer], 2.0)+TMath::Power(map_current_error_off[n_layer], 2.0));
-
-      Int_t n_point = gr_count_current.GetN();
-
-      gr_count_current.SetPoint(n_point, count, 1e9*current);
-      gr_count_current.SetPointError(n_point, count_error, 1e9*current_error);
-
-      gr_n_layer_count.SetPoint(n_point, n_layer, count);
-      gr_n_layer_count.SetPointError(n_point, 0, count_error);
-
-      gr_n_layer_current.SetPoint(n_point, n_layer, 1e9*current);
-      gr_n_layer_current.SetPointError(n_point, 0, 1e9*current_error);
-
-      Double_t attenuation_factor_count = count/count_10;
-      Double_t attenuation_factor_count_error = TMath::Sqrt(TMath::Power(count_error/count_10, 2) + TMath::Power(count*count_error_10/TMath::Power(count_10, 2.0), 2.0));
-
-      gr_n_layer_attenuation_factor_count.SetPoint(n_point, n_layer, attenuation_factor_count);
-      gr_n_layer_attenuation_factor_count.SetPointError(n_point, 0, attenuation_factor_count_error);
-
-      Double_t attenuation_factor_current = current/current_10;
-      Double_t attenuation_factor_current_error = TMath::Sqrt(TMath::Power(current_error/current_10, 2) + TMath::Power(current*current_error_10/current_10/current_10, 2.0));
-
-      gr_n_layer_attenuation_factor_current.SetPoint(n_point, n_layer, attenuation_factor_current);
-      gr_n_layer_attenuation_factor_current.SetPointError(n_point, 0, attenuation_factor_current_error);
-    }
-
-  //Write
-  fout->cd();
-
-  gr_count_current.Write();
-  gr_n_layer_count.Write();
-  gr_n_layer_current.Write();
-  gr_n_layer_attenuation_factor_count.Write();
-  gr_n_layer_attenuation_factor_current.Write();
-
-  //fit
-  gr_count_current.Fit("pol1", "FS0", "", 0, 8e6);
-  gr_n_layer_count.Fit("expo", "S", "", 2, 12);
-
-  fit_n_layer_count = (TF1*)(gr_n_layer_count.GetListOfFunctions()->FindObject("expo"));
-  
-  //print
-  TCanvas canvas("canvas", "canvas", 1200, 800);
-  canvas.Divide(1, 2);
-  canvas.Draw();
-
-  canvas.cd(1);
-  gr_count_current.Draw("AP*");
-
-  canvas.cd(2);
-  gr_n_layer_count.Draw("AP*");
-
-  canvas.GetPad(2)->SetLogy();
-
-  canvas.Print("Attenuation.png", "png");
 
   return;
-}//void Rate_Capability::Read_Attenuation()
-  
-//////////
+}//void Rate_Capability::Read_Attenuation_Data()
 
+//////////
+/*
 void Rate_Capability::Draw_Multi_Layer_Gain(const Bool_t& chk_renormal)
 {
   TCanvas canvas("can", "can", 800, 500);
@@ -353,13 +370,13 @@ void Rate_Capability::Draw_Multi_Layer_Gain(const Bool_t& chk_renormal)
   
   return;
 }//void Rate_Capability::Draw_Multi_Layer_Gain(const Bool_t& chk_recal)
-
+*/
 //////////
 
 void Rate_Capability::Read_Single_Layer_Data(const Int_t& n_layer)
 {
   //read data
-  TString target_data = path + "/Data_Rate_Capability/" + hv_current + "/Rate_Capability_" + hv_current + "_" + to_string(n_layer) + "Layer.csv";
+  TString target_data = path + "/Data_Rate_Capability/" + hv_current + "/" + to_string(n_layer) + "Layers/Rate_Capability_" + hv_current + "_" + to_string(n_layer) + "Layer.csv";
 
   ifstream fin;
   fin.open(target_data);
@@ -369,64 +386,52 @@ void Rate_Capability::Read_Single_Layer_Data(const Int_t& n_layer)
       cout << "Can not find " << target_data << ". Check it first." << endl;
       exit(1);
     }
-
-  vector<Int_t> vector_xray_current;
-
-  vector<Int_t> vector_count_off;
-  vector<Double_t> vector_current_off;
-  vector<Double_t> vector_current_error_off;
-
-  vector<Int_t> vector_count_on;
-  vector<Double_t> vector_current_on;
-  vector<Double_t> vector_current_error_on;
   
-  string temp;
-  getline(fin, temp);
+  Data data;
+  
+  string buf;
+  getline(fin, buf);
+
+  getline(fin, buf);
+  sscanf(buf.c_str(), "%d", &data.daq_time);
+
+  getline(fin, buf);
   while(!fin.eof())
     {
-      getline(fin, temp);
-      if(temp.compare("")==0) break;
+      getline(fin, buf);
+      if(buf.compare("")==0) break;
 
-      Int_t xray_current;
+      Data_Point point;
 
-      Int_t count_off;
-      Double_t current_off;
-      Double_t current_error_off;
+      Int_t resolution;
+      sscanf(buf.c_str(), "%d,%d,%d,%d", &point.xray_current, &point.count_off, &point.count_on, &resolution);
 
-      Int_t count_on;
-      Double_t current_on;
-      Double_t current_error_on;
-
-      sscanf(temp.c_str(), "%d,%d,%lf,%lf,%d,%lf,%lf", &xray_current, &count_off, &current_off, &current_error_off, &count_on, &current_on, &current_error_on);
-
-      vector_xray_current.push_back(xray_current);
-
-      vector_count_off.push_back(count_off);
-      vector_current_off.push_back(current_off);
-      vector_current_error_off.push_back(current_error_off);
+      TString fin_name_off = path + "/Data_Rate_Capability/" + hv_current + "/" + to_string(n_layer) + "Layers/Background.txt";
+      
+      Read_RO read_ro_off(fin_name_off);
+      
+      point.current_off = read_ro_off.Get_Mean();
+      point.current_error_off = read_ro_off.Get_Mean_Error();
             
-      vector_count_on.push_back(count_on);
-      vector_current_on.push_back(current_on);
-      vector_current_error_on.push_back(current_error_on);
+      TString fin_name_on = path + "/Data_Rate_Capability/" + hv_current + "/" + to_string(n_layer) + "Layers/" + to_string(point.xray_current) + "uA.txt";
+
+      Read_RO read_ro_on(fin_name_on);
+
+      point.current_on = read_ro_on.Get_Mean();
+      point.current_error_on = read_ro_on.Get_Mean_Error();
+      
+      data.points.push_back(point);    
     }
 
-  map_xray_current[n_layer] = vector_xray_current;
-
-  map_count_off[n_layer] = vector_count_off;
-  map_current_off[n_layer] = vector_current_off;
-  map_current_error_off[n_layer] = vector_current_error_off;
-  
-  map_count_on[n_layer] =  vector_count_on;
-  map_current_on[n_layer] = vector_current_on;
-  map_current_error_on[n_layer] =  vector_current_error_on;
+  map_data[n_layer] = data;
 
   return;
 }//void Rate_Capability::Read_Single_Layer_Data(const Int_t& n_layer)
 
 //////////
-
-void Rate_Capability::Renormalize_Attenuation_Gain()
-{
+/*
+  void Rate_Capability::Renormalize_Attenuation_Gain()
+  {
   Int_t n_layer_low = -1;
   Int_t n_layer_up = -1;
   
@@ -463,8 +468,8 @@ void Rate_Capability::Renormalize_Attenuation_Gain()
       Int_t n_point = gr_up->GetN();
       for(Int_t i=0; i<n_point; i++)
 	{
-	  Double_t flux_renormal = flux[i];//*attenuation_renormal;
-	  Double_t flux_error_renormal = flux_error[i];//*attenuation_renormal;
+	  Double_t flux_renormal = flux[i];//attenuation_renormal;
+	  Double_t flux_error_renormal = flux_error[i];//attenuation_renormal;
 	  
 	  Double_t gain_renormal = gain_up[i]/attenuation_renormal;
 	  Double_t gain_error_renormal = gain_error_up[i]/attenuation_renormal;
@@ -478,11 +483,10 @@ void Rate_Capability::Renormalize_Attenuation_Gain()
       fout->cd();
       gr_flux_gain_renormal.Write();
     }
-  
-  
+    
   return;
 }//void Rate_Capability::Renormalize_Attenuation_Gain()
-
+*/
 //////////
 
 void Rate_Capability::Get_Rate(const Int_t& xray_current, const Int_t& n_layer, Double_t& rate, Double_t& rate_error, const TString& mode)
@@ -490,8 +494,12 @@ void Rate_Capability::Get_Rate(const Int_t& xray_current, const Int_t& n_layer, 
   Double_t attenuation_factor = 0;
   Double_t attenuation_factor_error = 1;
   
-  if(mode=="COUNT_MEASUREMENT") GetY(gr_n_layer_attenuation_factor_count, n_layer, attenuation_factor, attenuation_factor_error);
-  else if(mode=="CURRENT_MEASUREMENT") GetY(gr_n_layer_attenuation_factor_current, n_layer, attenuation_factor, attenuation_factor_error);
+  if(mode=="SELF")
+    {
+      GetY(map_gr_xray_current_measured_rate[n_layer], xray_current, rate, rate_error);
+
+      return;
+    }
   else if(mode=="FIT_SELF")
     {
       map_gr_xray_current_measured_rate[n_layer].Fit("pol1", "", "", 0, 30);
@@ -501,23 +509,25 @@ void Rate_Capability::Get_Rate(const Int_t& xray_current, const Int_t& n_layer, 
       Double_t p1 = func->GetParameter(1);
 
       rate = xray_current*p1 + p0;
-      
+
       return;
     }
-       
+  else if(mode=="COUNT_MEASUREMENT") GetY(gr_n_layer_attenuation_factor_rate, n_layer, attenuation_factor, attenuation_factor_error);
+  else if(mode=="CURRENT_MEASUREMENT") GetY(gr_n_layer_attenuation_factor_current, n_layer, attenuation_factor, attenuation_factor_error);
+         
   //cout << n_layer << " " << attenuation_factor << " " << attenuation_factor_error << endl;
   
-  Double_t reference_rate = map_reference_rate[xray_current];
-  Double_t reference_rate_error = map_reference_rate_error[xray_current];
+  // Double_t reference_rate = map_reference_rate[xray_current];
+  // Double_t reference_rate_error = map_reference_rate_error[xray_current];
   
-  //in case no referece points in 10 layer measurement
-  if(reference_rate<10)
-    {
-      reference_rate = map_gr_xray_current_measured_rate[10].Eval(xray_current);      
-    }
+  // //in case no referece points in 10 layer measurement
+  // if(reference_rate<10)
+  //   {
+  //     reference_rate = map_gr_xray_current_measured_rate[10].Eval(xray_current);      
+  //   }
   
-  rate = attenuation_factor*reference_rate;
-  rate_error = TMath::Sqrt(TMath::Power(attenuation_factor_error*reference_rate, 2.0) + TMath::Power(attenuation_factor*reference_rate_error, 2.0));
+  // rate = attenuation_factor*reference_rate;
+  // rate_error = TMath::Sqrt(TMath::Power(attenuation_factor_error*reference_rate, 2.0) + TMath::Power(attenuation_factor*reference_rate_error, 2.0));
 
   return;
 }//void Rate_Capability::Get_Rate(const Int_t& xray_current, const Int_t& n_layer, Double_t& rate, Double_t& rate_error, const TString& mode)
@@ -549,3 +559,4 @@ void Rate_Capability::GetY(const TGraphErrors& graph, const Double_t& x, Double_
 }//Double_T Rate_Capability::GetY(const TGraphErrors& graph, const Int_t& xray_current, Double_t& y, Double_t& ey)
 
 //////////
+

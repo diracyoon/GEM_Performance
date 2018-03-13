@@ -20,6 +20,7 @@ libGEM_Performance_la_LIBADD = \
 libGEM_Performance_la_SOURCES = \
   Gain.C \
   Rate_Capability.C \
+  Read_RO.C \
   GEM_Performance_Dict.C
 
 BUILT_SOURCES = \
@@ -42,6 +43,7 @@ GEM_Performance_Dict.C: \
   Const_Def.h \
   Gain.h \
   Rate_Capability.h \
+  Read_RO.h \
   GEM_Performance_LinkDef.h
 	rootcling -f $@ -I`root-config --incdir` -c $^
 

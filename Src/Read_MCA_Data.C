@@ -87,7 +87,7 @@ Float_t Read_MCA_Data::Get_Fit_Par_Error(const Int_t& index)
   Double_t par_error = fit_func->GetParError(index);
 
   return par_error;
-}//
+}//Float_t Read_MCA_Data::Get_Fit_Par_Error(const Int_t& index)
 
 //////////
 

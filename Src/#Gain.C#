@@ -29,11 +29,11 @@ Gain::~Gain()
   gr_gain.Write();
 
   fit_gain.SetName("Fit_HV_Current_Gain");
-  fit_gain.SetTitle("Fit: HV_Current vs Gain");
+  fit_gain.SetTitle("Fit: HV vs Gain");
   fit_gain.Write();
 
   gr_gain_conf.SetName("Conf_HV_Current_Gain");
-  gr_gain_conf.SetTitle("Confidence Level: HV_Current vs Gain");
+  gr_gain_conf.SetTitle("Confidence : ");
   gr_gain_conf.Write();
   
   fout->Close();

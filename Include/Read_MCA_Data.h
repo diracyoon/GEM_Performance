@@ -23,7 +23,7 @@ class Read_MCA_Data : public TObject
   Float_t Get_Fit_Parameter(const Int_t& index);
   Float_t Get_Fit_Par_Error(const Int_t& index);
   TH1D* Get_Histo(){ return (TH1D*)histo.Clone(); }
-  
+   
  private:
   TString data_file;
   

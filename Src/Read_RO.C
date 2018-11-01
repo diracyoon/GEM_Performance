@@ -9,7 +9,7 @@ Read_RO::Read_RO(const TString& fin_name, const Bool_t& a_ro_mode)
   fin.open(fin_name);
   if(fin.is_open()==kFALSE)
     {
-      cout << "Can not find txt file!" << endl;
+      cout << "Can not find txt file, " << fin_name << endl;
       exit(1);
     }
 

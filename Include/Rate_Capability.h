@@ -106,7 +106,7 @@ class Rate_Capability :  public TObject
   map<Int_t, TGraphErrors> map_gr_flux_gain;
   map<Int_t, TGraphErrors> map_gr_flux_gain_renormal;
   
-  void Get_Rate(const Int_t& xray_current, const Int_t& n_layer, Double_t& rate, Double_t& rate_error, const TString& mode);
+  void Get_Rate(const Int_t& xray_current, const Int_t& n_layer, Double_t& rate, Double_t& rate_error, const TString& mode, const Int_t& range=10);
   void GetY(const TGraphErrors& graph, const Double_t& x, Double_t& y, Double_t& ey);
     
   ClassDef(Rate_Capability, 1);

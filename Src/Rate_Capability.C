@@ -152,19 +152,9 @@ void Rate_Capability::Calculate_Expected_Rate(const Int_t& n_layer)
       Double_t expected_rate_error;
       
       if(n_layer==10) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "SELF");
-      else if(n_layer==4) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "SELF");
-      else if(n_layer==1)
-	{
-	  //if(xray_current<40) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "SELF");
-	  //else
-	  Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "FIT_SELF");
-	}
-      else if(n_layer==0)
-	{
-	  //if(xray_current<20) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "SELF");
-	  //else Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "FIT_SELF");
-	  Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "RATE_ATTENUATION");
-	}
+      else if(n_layer==4) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "FIT_SELF", );
+      else if(n_layer==1) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "FIT_SELF", 50);
+      else if(n_layer==0) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "RATE_ATTENUATION");
       
       gr_xray_current_expected_rate.SetPoint(i, xray_current, expected_rate);
       gr_xray_current_expected_rate.SetPointError(i, 0, expected_rate_error); 
@@ -303,82 +293,11 @@ void Rate_Capability::Read_Attenuation_Data()
 }//void Rate_Capability::Read_Attenuation_Data()
 
 //////////
-/*
-void Rate_Capability::Draw_Multi_Layer_Gain(const Bool_t& chk_renormal)
-{
-  TCanvas canvas("can", "can", 800, 500);
-
-  TMultiGraph multi_gr;
-  multi_gr.SetName("Gr_Flux_Normalized_Gain");
-  multi_gr.SetTitle("Flux  vs Normalized Gain");
-
-  TGraphErrors gr_normal[4];
-
-  map<Int_t, TGraphErrors>& map = map_gr_flux_gain;
-  if(chk_renormal==kFALSE) map = map_gr_flux_gain;
-  else map = map_gr_flux_gain_renormal;
-  
-  Double_t average = 1, error = 0;
-  Int_t count = 0;
-  for(auto it = map.rbegin(); it!=map.rend(); it++)
-    {
-      TGraphErrors* gr = &it->second;
-
-      if(count==0)
-	{
-	  gr->Fit("pol0");
-	  TF1* fit = (TF1*)(gr->GetListOfFunctions()->FindObject("pol0"));
-
-	  average = fit->GetParameter(0);
-	  error = fit->GetParError(0);
-	}
-
-      Double_t* x = gr->GetX();
-      Double_t* ex = gr->GetEX();
-      Double_t* y = gr->GetY();
-      Double_t* ey = gr->GetEY();
-
-      for(Int_t i=0; i<gr->GetN(); i++)
-	{
-	  gr_normal[count].SetPoint(i, x[i], y[i]/average);
-	  gr_normal[count].SetPointError(i, ex[i], TMath::Sqrt(TMath::Power(ey[i]/average, 2.0) + TMath::Power(ey[i]*error/average/average, 2.0)));
-	}
-      
-      gr_normal[count].SetLineColor(count+1);
-      gr_normal[count].SetMarkerStyle(count+27);
-      gr_normal[count].SetMarkerColor(count+1);
-      
-      multi_gr.Add(&gr_normal[count]);
-
-      count++;
-    }
-
-  //write
-  multi_gr.Write();
-  
-  multi_gr.Draw("AP");
-  multi_gr.SetTitle("Flux_Normalized_Gain_"+hv_current);
-  multi_gr.GetXaxis()->SetLimits(1e1, 1e7);
-  multi_gr.GetXaxis()->SetTitle("Flux [Hz/mm^{2}]");
-  multi_gr.GetYaxis()->SetRangeUser(0, 1.7);
-  multi_gr.GetYaxis()->SetTitle("Normalized Gain");
-    
-  canvas.SetLogx();
-  canvas.SetGridy();
-
-  canvas.Update();
-  
-  canvas.Print("Flux_Normalized_Gain_"+hv_current+".png", "png");
-  
-  return;
-}//void Rate_Capability::Draw_Multi_Layer_Gain(const Bool_t& chk_recal)
-*/
-//////////
 
 void Rate_Capability::Read_Single_Layer_Data(const Int_t& n_layer)
 {
   //read data
-  TString target_data = path + "/Data_Rate_Capability/GE11/" + hv_current + "/" + to_string(n_layer) + "Layers/Rate_Capability_" + hv_current + "_" + to_string(n_layer) + "Layers.csv";
+  TString target_data = path + "/Data_Rate_Capability/GE11_0003/" + hv_current + "/" + to_string(n_layer) + "Layers/Rate_Capability_" + hv_current + "_" + to_string(n_layer) + "Layers.csv";
 
   ifstream fin;
   fin.open(target_data);
@@ -401,16 +320,16 @@ void Rate_Capability::Read_Single_Layer_Data(const Int_t& n_layer)
       Data_Point point;
 
       sscanf(buf.c_str(), "%d,%d,%d,%d,%d", &point.xray_current, &point.count_off, &point.count_on, &point.daq_time, &point.resolution);
-      cout << point.xray_current << endl;
-      TString fin_name_off = path + "/Data_Rate_Capability/GE11/" + hv_current + "/" + to_string(n_layer) + "Layers/Background.txt";
+      
+      TString fin_name_off = path + "/Data_Rate_Capability/GE11_0003/" + hv_current + "/" + to_string(n_layer) + "Layers/Background.txt";
       
       Read_RO read_ro_off(fin_name_off, point.resolution);
       
       point.current_off = read_ro_off.Get_Mean();
       point.current_error_off = read_ro_off.Get_Mean_Error();
             
-      TString fin_name_on = path + "/Data_Rate_Capability/GE11/" + hv_current + "/" + to_string(n_layer) + "Layers/" + to_string(point.xray_current) + "uA.txt";
-
+      TString fin_name_on = path + "/Data_Rate_Capability/GE11_0003/" + hv_current + "/" + to_string(n_layer) + "Layers/" + to_string(point.xray_current) + "uA.txt";
+      
       Read_RO read_ro_on(fin_name_on, point.resolution);
 
       point.current_on = read_ro_on.Get_Mean();
@@ -485,7 +404,7 @@ void Rate_Capability::Read_Single_Layer_Data(const Int_t& n_layer)
 */
 //////////
 
-void Rate_Capability::Get_Rate(const Int_t& xray_current, const Int_t& n_layer, Double_t& rate, Double_t& rate_error, const TString& mode)
+void Rate_Capability::Get_Rate(const Int_t& xray_current, const Int_t& n_layer, Double_t& rate, Double_t& rate_error, const TString& mode, const Int_t& range)
 {
   Double_t attenuation_factor, attenuation_factor_error;
   
@@ -499,7 +418,7 @@ void Rate_Capability::Get_Rate(const Int_t& xray_current, const Int_t& n_layer, 
     {
       if(map_fit_xray_current_expected_rate[n_layer]==NULL)
 	{
-	  map_gr_xray_current_measured_rate[n_layer].Fit("pol1", "F", "", 0, 40);
+	  map_gr_xray_current_measured_rate[n_layer].Fit("pol1", "F", "", 0, range);
 	  map_fit_xray_current_expected_rate[n_layer] = (TF1*)(map_gr_xray_current_measured_rate[n_layer].GetListOfFunctions()->FindObject("pol1"));
 
 	  Int_t n_point = map_gr_xray_current_measured_rate[n_layer].GetN();
@@ -509,19 +428,19 @@ void Rate_Capability::Get_Rate(const Int_t& xray_current, const Int_t& n_layer, 
 	}
 
       GetY(map_CI_expected_rate[n_layer], xray_current, rate, rate_error);
-      //rate = map_fit_xray_current_expected_rate[n_layer]->Eval(xray_current);
-      
+            
       return;
     }
   else if(mode=="RATE_ATTENUATION") GetY(gr_n_layer_attenuation_factor_rate, n_layer, attenuation_factor, attenuation_factor_error);
   else if(mode=="CURRENT_ATTENUATION") GetY(gr_n_layer_attenuation_factor_current, n_layer, attenuation_factor, attenuation_factor_error);
-         
-  //cout << n_layer << " " << attenuation_factor << " " << attenuation_factor_error << endl;
+
+  //attenuation_factor_error = 0.1*attenuation_factor;
+  cout << n_layer << " " << attenuation_factor << " " << attenuation_factor_error << endl;
   
   Double_t reference_rate, reference_rate_error;
   GetY(map_gr_xray_current_expected_rate[1], xray_current, reference_rate, reference_rate_error);
   
-  //in case no referece points in 4 layer measurement
+  //in case no referece points in 1 layer measurement
   if(reference_rate<0) reference_rate = map_gr_xray_current_expected_rate[1].Eval(xray_current);      
   
   rate = attenuation_factor*reference_rate;

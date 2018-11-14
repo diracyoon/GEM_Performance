@@ -12,6 +12,15 @@
 #include <TString.h>
 #include <TGraphErrors.h>
 #include <TMath.h>
+#include <TAxis.h>
+#include <TF1.h>
+#include <TCanvas.h>
+#include <TVirtualFitter.h>
+#include <TStyle.h>
+#include <TLegend.h>
+#include <TPaveStats.h>
+
+#include <Const_Def.h>
 
 namespace namespace_discharge_prob
 {
@@ -40,16 +49,30 @@ class Discharge_Prob : public TObject
   TFile* fin;
   TString gain_file;
   
-  TGraphErrors* conf_gain;
+  TGraphErrors conf_gain;
 
   TFile* fout;
   
   vector<namespace_discharge_prob::Data> vec_data;
 
-  TGraphErrors gr_gain_discharge_prob;
+  TGraphErrors gr_discharge_prob;
+  TGraphErrors gr_discharge_prob_scale;
+
+  TF1 fit_discharge_prob;
+  TF1 fit_discharge_prob_scale;
+
+  TGraphErrors gr_discharge_prob_conf;
+  TGraphErrors gr_discharge_prob_conf_scale;
+
+  TPaveStats* stats;
+  TLegend tl;
   
+  TCanvas canvas;
+  
+  void Calculate_CL();
   void Calculate_Prob();
-  void Get_Mean_Error_Gr();
+  void Draw();
+  void Get_Gain_Error(const Double_t& current, Double_t val[]);
   time_t Parsing_Time(const string& str);
   void Read_Count_Data();
     

@@ -7,4 +7,7 @@
 #define N_PRIMARY_ELECTRON_ERROR_FE55 2.4
 #define ELECTRON_CHARGE 1.602E-19
 
+#define GAIN_RANGE_LOWER 1e4
+#define GAIN_RANGE_UPPER 6e4
+
 #endif /* __Const_Def_h__ */

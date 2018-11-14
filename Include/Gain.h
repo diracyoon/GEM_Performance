@@ -56,7 +56,7 @@ class Gain : public TObject
   
   TFile* fout;
 
-  vector<Data> vec_data;
+  vector<namespace_gain::Data> vec_data;
 
   void Calculate_Gain();
   void Fit();

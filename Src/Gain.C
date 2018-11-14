@@ -14,7 +14,7 @@ Gain::Gain(const TString& a_path, const TString& a_target)
   Read_Data();
   Calculate_Gain();
   Fit();
-}//Gain::Gain()
+}//Gain::Gain(const TString& a_path, const TString& a_target)
 
 //////////
 
@@ -43,7 +43,7 @@ Gain::~Gain()
 
 void Gain::Calculate_Gain()
 {
-  Data data = vec_data[13];
+  Data data = vec_data[12];
   
   Int_t count_plateau = data.count_on - data.count_off;
   Float_t count_error_plateau = Sqrt(data.count_on + data.count_off);
@@ -72,12 +72,14 @@ void Gain::Calculate_Gain()
       Float_t gain_error = Power(ro_current_error/ELECTRON_CHARGE/rate_plateau/N_PRIMARY_ELECTRON_FE55, 2.);
       gain_error += Power(ro_current*((rate_error_plateau/rate_plateau)+(N_PRIMARY_ELECTRON_ERROR_FE55/N_PRIMARY_ELECTRON_FE55))/ELECTRON_CHARGE/rate_plateau/N_PRIMARY_ELECTRON_FE55, 2.);
       gain_error = Sqrt(gain_error);
-      
+
       gr_rate.SetPoint(i, hv_current, rate);
       gr_rate.SetPointError(i, 0, rate_error);
             
       gr_gain.SetPoint(i, hv_current, gain);
       gr_gain.SetPointError(i, 0, gain_error);
+
+      cout << hv_current << " " << rate << " " << ro_current << " " << gain << endl;
     }
   
   return;
@@ -111,6 +113,8 @@ void Gain::Fit()
 
 void Gain::Read_Data()
 {
+  cout << "Read data..." << endl;
+  
   TString count_data_path = path + "/Data/" + target + "/Data.csv";
   
   ifstream count_data;
@@ -140,7 +144,7 @@ void Gain::Read_Data()
 
       getline(ss, buf, ',');
       data.count_on = stoi(buf, nullptr);
-
+      
       TString ro_data_off_path = path + "/Data/" + target + "/Off/" + data.hv_current + ".txt";
       
       Read_RO ro_off(ro_data_off_path);
@@ -154,7 +158,12 @@ void Gain::Read_Data()
       data.ro_current_error_on = ro_on.Get_Mean_Error();
 
       vec_data.push_back(data);
+
+      cout << data.hv_current << endl;
     }
+  
+  cout << "Reading done." << endl;
+  
   return;
 }//void Gain::Read_Data()
 

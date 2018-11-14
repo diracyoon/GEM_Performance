@@ -20,17 +20,22 @@
 using namespace std;
 using namespace TMath;
 
-typedef struct _Data
+namespace namespace_gain
 {
-  Int_t voltage;
-  Int_t hv_current;
-  Int_t count_off;
-  Int_t count_on;
-  Float_t ro_current_off;
-  Float_t ro_current_error_off;
-  Float_t ro_current_on;
-  Float_t ro_current_error_on;
-} Data;
+  typedef struct _Data
+  {
+    Int_t voltage;
+    Int_t hv_current;
+    Int_t count_off;
+    Int_t count_on;
+    Float_t ro_current_off;
+    Float_t ro_current_error_off;
+    Float_t ro_current_on;
+    Float_t ro_current_error_on;
+  } Data;
+}
+
+using namespace namespace_gain;
 
 class Gain : public TObject
 {

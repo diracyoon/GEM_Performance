@@ -43,7 +43,7 @@ Gain::~Gain()
 
 void Gain::Calculate_Gain()
 {
-  Data data = vec_data[12];
+  Data data = vec_data[11];
   
   Int_t count_plateau = data.count_on - data.count_off;
   Float_t count_error_plateau = Sqrt(data.count_on + data.count_off);
@@ -150,13 +150,16 @@ void Gain::Read_Data()
       Read_RO ro_off(ro_data_off_path);
       data.ro_current_off = ro_off.Get_Mean();
       data.ro_current_error_off = ro_off.Get_Mean_Error();
+      cout << "read_off" << endl;
 
       TString ro_data_on_path = path + "/Data/" + target + "/On/" + data.hv_current + ".txt";
-
+      cout << ro_data_on_path << endl;
       Read_RO ro_on(ro_data_on_path);
       data.ro_current_on = ro_on.Get_Mean();
       data.ro_current_error_on = ro_on.Get_Mean_Error();
-
+      cout << "read on" << endl;
+     
+      
       vec_data.push_back(data);
 
       cout << data.hv_current << endl;

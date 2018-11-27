@@ -40,7 +40,7 @@ Discharge_Prob::~Discharge_Prob()
   fit_discharge_prob.Write();
 
   gr_discharge_prob_conf.SetName("Conf_Gain_Discharge_Prob");
-  gr_discharge_prob_conf.SetTitle("Confidence Level: Gain Vs. Discharge Prob");
+  gr_discharge_prob_conf.SetTitle("Discharge Prob Vs. Gain: 5.5 GeV");
   gr_discharge_prob_conf.Write();
   
   gr_discharge_prob_scale.SetName("Gr_Gain_Discharge_Prob_Scale");
@@ -184,11 +184,11 @@ void Discharge_Prob::Draw()
 
   gr_discharge_prob_conf.SetFillColor(6);
   gr_discharge_prob_conf.SetFillStyle(3005);
-  gr_discharge_prob_conf.SetTitle("Gain Vs. Discharge Prob., 5.5 MeV #alpha");
+  gr_discharge_prob_conf.SetTitle("Discharge Prob. Vs. Gain, 5.5 MeV #alpha");
   gr_discharge_prob_conf.GetXaxis()->SetTitle("Gain");
   gr_discharge_prob_conf.GetXaxis()->SetLimits(GAIN_RANGE_LOWER, GAIN_RANGE_UPPER);
   gr_discharge_prob_conf.GetYaxis()->SetTitle("Discharge Prob.");
-  //gr_conf->GetYaxis()->SetRangeUser(1e-10*scale, 1e-2*scale);
+  gr_discharge_prob_conf.GetYaxis()->SetRangeUser(1e-10, 1e-3);
   gr_discharge_prob_conf.Draw("a3");
 
   gr_discharge_prob.Draw("SAMEP");
@@ -203,6 +203,8 @@ void Discharge_Prob::Draw()
   tl.Draw("SAME");
 
   canvas.SetLogy();
+
+  canvas.Print("canvas.png", "png");
   
   return;
 }//void Discharge_Prob::Draw()
@@ -243,11 +245,11 @@ time_t Discharge_Prob::Parsing_Time(const string& str)
 {
   struct tm time = {0};
   time.tm_year = stoi(str.substr(0, 4), nullptr) - 1900;
-  time.tm_mon = stoi(str.substr(4, 2), nullptr)-1;
+  time.tm_mon = stoi(str.substr(4, 2), nullptr) - 1;
   time.tm_mday = stoi(str.substr(6, 2), nullptr);
   time.tm_hour = stoi(str.substr(9, 2), nullptr);
   time.tm_min = stoi(str.substr(12, 2), nullptr);
-
+  
   return mktime(&time);
 }//Int_t Discharge_Prob::Parsing_Time(const string& str)
 
@@ -266,6 +268,8 @@ void Discharge_Prob::Read_Count_Data()
       getline(fin, buf);
       if(buf.compare("")==0) break;
 
+      if(buf.substr(0, 1).compare("#")==0) continue;
+      
       stringstream ss;
       ss.str(buf);
       
@@ -296,7 +300,8 @@ void Discharge_Prob::Read_Count_Data()
       
       vec_data.push_back(data);
     }
-  
+
+  return;
 }//void Discharge_Prob::Read_Count_Data() 
 
 //////////

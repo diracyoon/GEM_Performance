@@ -8,6 +8,6 @@
 #define ELECTRON_CHARGE 1.602E-19
 
 #define GAIN_RANGE_LOWER 1e4
-#define GAIN_RANGE_UPPER 6e4
+#define GAIN_RANGE_UPPER 1e5
 
 #endif /* __Const_Def_h__ */

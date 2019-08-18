@@ -17,30 +17,33 @@ using namespace std;
 class Read_MCA_Data : public TObject
 {
  public:
-  Read_MCA_Data(const TString& a_data_file, const TString& histo_name="histo", const TString& histo_title="histo");
-  ~Read_MCA_Data();
+  Read_MCA_Data(const TString& a_data_file, const TString& a_histo_name="histo", const TString& a_histo_title="histo");
+  virtual ~Read_MCA_Data();
+
+  virtual void Read_Data()=0;
   
-  void Fit_Histo(const Bool_t& chk_draw=kTRUE, const Bool_t& chk_save=kFALSE);
-  Float_t Get_Fit_Parameter(const Int_t& index);
-  Float_t Get_Fit_Par_Error(const Int_t& index);
-  Float_t Get_FWHM();
-  Float_t Get_Max_X();
-  TH1D* Get_Histo(){ return (TH1D*)histo.Clone(); }
+  //void Fit_Histo(const Bool_t& chk_draw=kTRUE, const Bool_t& chk_save=kFALSE); 
+  /* Float_t Get_Fit_Parameter(const Int_t& index); */
+  /* Float_t Get_Fit_Par_Error(const Int_t& index); */
+  /* Float_t Get_FWHM(); */
+  /* Float_t Get_Max_X(); */
+  TH1D Get_Histo();
    
- private:
-  TString data_file;
+ protected:
+   TString data_file; 
+   TString histo_name;
+   TString histo_title;
+   
+  /* Float_t fwhm; */
 
-  Float_t fwhm;
+  /* const Double_t fit_range_lower; */
+  /* const Double_t fit_range_upper; */
+  
+   ifstream fin; 
 
-  const Double_t fit_range_lower;
-  const Double_t fit_range_upper;
+   TH1D* histo; 
   
-  ifstream fin;
-  TH1D histo;
-  
-  void Fill_Histo();
-    
-  ClassDef(Read_MCA_Data, 1);
+   ClassDef(Read_MCA_Data, 1);
 };
 
 #endif /* __Read_MCA_Data_h__ */

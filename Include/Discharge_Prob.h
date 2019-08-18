@@ -19,8 +19,12 @@
 #include <TStyle.h>
 #include <TLegend.h>
 #include <TPaveStats.h>
+#include <TLatex.h>
+#include <TTree.h>
+#include <TH1D.h>
 
 #include <Const_Def.h>
+#include <Read_Env_Data.h>
 
 namespace namespace_discharge_prob
 {
@@ -28,10 +32,18 @@ namespace namespace_discharge_prob
   {
     Double_t voltage;
     Double_t current;
+    time_t start_time;
+    time_t end_time;
     Int_t alpha_count;
     Int_t discharge_count;
     Int_t duration;
     Int_t background_count;
+
+    Float_t gain;
+    Float_t gain_error;
+    TH1D* h_gain;
+    
+    vector<namespace_Env_Data::Data> env_data;
   } Data;
 }
 
@@ -48,13 +60,14 @@ class Discharge_Prob : public TObject
  protected:
   TFile* fin;
   TString gain_file;
-  
+
+  TF1 fit_gain;
   TGraphErrors conf_gain;
 
   TFile* fout;
   
   vector<namespace_discharge_prob::Data> vec_data;
-
+  
   TGraphErrors gr_discharge_prob;
   TGraphErrors gr_discharge_prob_scale;
 
@@ -72,10 +85,12 @@ class Discharge_Prob : public TObject
   void Calculate_CL();
   void Calculate_Prob();
   void Draw();
+  void Get_Gain();
   void Get_Gain_Error(const Double_t& current, Double_t val[]);
   time_t Parsing_Time(const string& str);
   void Read_Count_Data();
-    
+  void Return_Dates(const time_t& start_time, const time_t& end_time, vector<TString>& dates);
+  
   ClassDef(Discharge_Prob, 1);
 };
 

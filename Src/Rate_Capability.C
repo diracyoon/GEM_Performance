@@ -152,7 +152,7 @@ void Rate_Capability::Calculate_Expected_Rate(const Int_t& n_layer)
       Double_t expected_rate_error;
       
       if(n_layer==10) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "SELF");
-      else if(n_layer==4) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "FIT_SELF", );
+      else if(n_layer==4) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "SELF");
       else if(n_layer==1) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "FIT_SELF", 50);
       else if(n_layer==0) Get_Rate(xray_current, n_layer, expected_rate, expected_rate_error, "RATE_ATTENUATION");
       

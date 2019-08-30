@@ -22,11 +22,10 @@ class Read_MCA_Data : public TObject
 
   virtual void Read_Data()=0;
   
-  //void Fit_Histo(const Bool_t& chk_draw=kTRUE, const Bool_t& chk_save=kFALSE); 
   /* Float_t Get_Fit_Parameter(const Int_t& index); */
   /* Float_t Get_Fit_Par_Error(const Int_t& index); */
-  /* Float_t Get_FWHM(); */
   /* Float_t Get_Max_X(); */
+  
   TH1D Get_Histo();
    
  protected:

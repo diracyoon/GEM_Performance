@@ -9,6 +9,7 @@
 #pragma link C++ class Read_MCA_Data+;
 #pragma link C++ class MC2+;
 #pragma link C++ class DP5+;
+#pragma link C++ class ADC_Spectrum_Analyzer+;
 #pragma link C++ class Read_RO+;
 #pragma link C++ class Discharge_Prob+;
 #pragma link C++ class Discharge_Hardness+;

@@ -18,8 +18,8 @@ Discharge_Prob::Discharge_Prob(const TString& a_gain_file) : gain_file(a_gain_fi
   Read_Count_Data();
   Get_Gain();  
   Calculate_Prob();
-  //Calculate_CL();
-  //Draw();
+  Calculate_CL();
+  Draw();
 }//Discharge_Prob::Discharge_Prob(const TString& a_gain_file)
 
 //////////
@@ -161,7 +161,7 @@ void Discharge_Prob::Calculate_Prob()
       Double_t gain_error = data.gain_error;
 
       
-      cout << scale << " " << scale_error << " " <<  net_count << " " << data.discharge_count << " " << discharge_prob << " " << discharge_prob_error  << gain << " " << gain_error << endl;
+      cout << scale << " " << scale_error << " " <<  net_count << " " << data.discharge_count << " " << discharge_prob << " " << discharge_prob_error  << " " << gain << " " << gain_error << endl;
 
       gr_discharge_prob.SetPoint(i, gain, discharge_prob);
       gr_discharge_prob.SetPointError(i, gain_error, discharge_prob_error);
@@ -238,11 +238,11 @@ void Discharge_Prob::Get_Gain()
 {
   TTree* tree = (TTree*)fin->Get("T");
 
-  Double_t temperature_gain;
-  Double_t pressure_gain;
+  Double_t temperature_ref;
+  Double_t pressure_ref;
 
-  tree->SetBranchAddress("temperature", &temperature_gain);
-  tree->SetBranchAddress("pressure", &pressure_gain);
+  tree->SetBranchAddress("temperature", &temperature_ref);
+  tree->SetBranchAddress("pressure", &pressure_ref);
 
   tree->GetEntry(0);
 
@@ -254,14 +254,14 @@ void Discharge_Prob::Get_Gain()
       Float_t current = data.current;
 
       string h_name = "histo_" + to_string((Int_t)current);
-      data.h_gain = new TH1D(h_name.c_str(), h_name.c_str(), 1000, 5000, 200000);
+      data.h_gain = new TH1D(h_name.c_str(), h_name.c_str(), 1000, 0, 200000);
       
       for(Int_t j=0; j<data.env_data.size(); j++)
 	{
 	  Float_t temperature = data.env_data[j].temperature;
 	  Float_t pressure =  data.env_data[j].pressure;
 	  
-	  Float_t correction_factor = (pressure_gain/temperature_gain)*(temperature/pressure);
+	  Float_t correction_factor = (pressure_ref/temperature_ref)*(temperature/pressure);
 	  Float_t current_corr = correction_factor*current;
 
 	  Float_t gain = fit_gain.Eval(current_corr);
